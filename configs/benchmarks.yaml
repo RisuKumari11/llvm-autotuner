@@ -1,0 +1,28 @@
+polybench_root: /home/ubun/dev/polybench   # adjust to your username
+dataset_wallclock: SMALL_DATASET
+dataset_callgrind: MINI_DATASET
+benchmarks:
+  - name: gemm
+    path: linear-algebra/blas/gemm
+  - name: 2mm
+    path: linear-algebra/kernels/2mm
+  - name: 3mm
+    path: linear-algebra/kernels/3mm
+  - name: atax
+    path: linear-algebra/kernels/atax
+  - name: bicg
+    path: linear-algebra/kernels/bicg
+  - name: mvt
+    path: linear-algebra/kernels/mvt
+  - name: gesummv
+    path: linear-algebra/blas/gesummv
+  - name: jacobi-2d
+    path: stencils/jacobi-2d
+  - name: seidel-2d
+    path: stencils/seidel-2d
+  - name: heat-3d
+    path: stencils/heat-3d
+  - name: correlation
+    path: datamining/correlation
+  - name: covariance
+    path: datamining/covariance

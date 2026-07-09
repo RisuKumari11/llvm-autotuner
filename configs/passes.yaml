@@ -1,0 +1,23 @@
+# curated pass pool (action space for week 2+)
+function_passes:
+  - sroa
+  - early-cse
+  - instcombine
+  - simplifycfg
+  - reassociate
+  - gvn
+  - sccp
+  - correlated-propagation
+  - jump-threading
+  - adce
+  - dce
+  - tailcallelim
+  - loop-simplify
+  - loop-unroll
+  - loop-vectorize
+  - slp-vectorizer
+loop_passes:          # must be wrapped in loop-mssa(...)
+  - loop-rotate
+  - licm
+  - indvars
+  - loop-deletion
