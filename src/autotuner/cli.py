@@ -37,7 +37,9 @@ def baselines(callgrind: bool = True, timing: bool = False):
 @app.command()
 def report():
     """Print baseline table with speedups vs O0."""
-    df = store.load("baselines").drop_duplicates(["bench", "level"], keep="last")
+    df = store.load("baselines")
+    df = df.dropna(subset=["instr"])
+    df = df.drop_duplicates(["bench", "level"], keep="last")
     piv = df.pivot(index="bench", columns="level", values="instr")
     t = Table(title="Instruction count (lower is better)")
     t.add_column("bench")
@@ -48,5 +50,100 @@ def report():
         t.add_row(bench, *(f"{int(r[level]):,}" for level in LEVELS), f"{r['O0']/r['O2']:.2f}x")
     console.print(t)
 
+@app.command()
+def search(method: str = "random", budget: int = 60, seed: int = 0):
+    """Run a search method across all benchmarks, log every evaluation."""
+    from .search.evaluate import Evaluator
+    from .search.random_search import random_search
+    from .search.hillclimb import hill_climb   # exists after Day 3
+    all_rows = []
+    for b in BENCH_CFG["benchmarks"]:
+        ev = Evaluator(b["name"], b["path"])
+        if method == "random":
+            rows = random_search(ev, budget, seed)
+        elif method == "hillclimb":
+            from .search.hillclimb import hill_climb
+            rows = hill_climb(ev, budget, seed)
+        else:
+            raise typer.BadParameter(method)
+        all_rows += rows
+        best = min((r["instr"] for r in rows if r["instr"] is not None), default=None)
+        console.print(f"[green]{b['name']}[/] best={best}")
+    store.append(all_rows, f"search_{method}") 
+  
+@app.command()
+def compare():
+    """Final comparison table: O2/O3 baselines vs search methods."""
+    from .stats import geomean
+    base = store.load("baselines")
+    base = base.dropna(subset=["instr"])
+    base = base.drop_duplicates(
+        ["bench","level"],
+        keep="last"
+    )
+    base = base.pivot(index="bench", columns="level", values="instr")
+
+    frames = []
+    for m in ("random", "hillclimb"):
+        df = store.load(f"search_{m}")
+        best = (df.dropna(subset=["instr"])
+                  .groupby("bench")["instr"].min().rename(m))
+        frames.append(best)
+    tbl = base.join(frames)
+
+    t = Table(title="Best instruction count per method (lower is better)")
+    for col in ["bench", "O2", "O3", "random", "hillclimb",
+                "rand/O2", "hc/O2", "beats O3?"]:
+        t.add_column(col, justify="right")
+    for bench, r in tbl.iterrows():
+        t.add_row(bench, f"{int(r['O2']):,}", f"{int(r['O3']):,}",
+                  f"{int(r['random']):,}", f"{int(r['hillclimb']):,}",
+                  f"{r['O2']/r['random']:.3f}x", f"{r['O2']/r['hillclimb']:.3f}x",
+                  "yes" if r["hillclimb"] < r["O3"] else "no")
+    console.print(t)
+    for m in ("random", "hillclimb"):
+        # vals = (tbl["O2"] / tbl[m]).values
+        # print("DEBUG", m, vals)
+
+        # g = geomean(vals)
+
+        # print("DEBUG g =", g)
+        g = geomean((tbl["O2"] / tbl[m]).values)
+        # console.print(
+        #     f"geomean speedup vs O2 ({m}): [bold]{g:.3f}x[/]"
+        # )
+        console.print(f"geomean speedup vs O2 ({m}): {g:.3f}x")
+        # console.print(f"benchmarks where hillclimb beats O3: "
+        #             f"{int((tbl['hillclimb'] < tbl['O3']).sum())}/{len(tbl)}")
+        beats = int((tbl["hillclimb"] < tbl["O3"]).sum())
+        console.print(f"benchmarks where hillclimb beats O3: {beats}/{len(tbl)}")
+    
+@app.command()
+def validate():
+    """Wall-clock check: does the instruction-count winner also win real time?"""
+    from .search.evaluate import WORK
+    from .ir import emit_linked_bc
+    from .compile import compile_with_passes
+    from .measure import wall_clock
+    from .baselines import build_baseline
+
+    df = store.load("search_hillclimb").dropna(subset=["instr"])
+    rows = []
+    for b in BENCH_CFG["benchmarks"]:
+        d = df[df.bench == b["name"]]
+        if d.empty: 
+            continue
+        best_seq = d.loc[d["instr"].idxmin(), "passes"].split(",")
+        wd = WORK / b["name"] / "validate"
+        bc = emit_linked_bc(b["path"], BENCH_CFG["dataset_wallclock"], wd)
+        tuned = compile_with_passes(bc, best_seq, wd / "bin_tuned")
+        o2 = build_baseline(b["path"], "O2", BENCH_CFG["dataset_wallclock"], wd)
+        wt, wo = wall_clock(tuned), wall_clock(o2)
+        rows.append({"bench": b["name"], "tuned_median": wt.median_s,
+                     "o2_median": wo.median_s,
+                     "speedup": wo.median_s / wt.median_s})
+        console.print(f"{b['name']}: {wo.median_s/wt.median_s:.3f}x vs O2 (wall-clock)")
+    store.append(rows, "wallclock_validation")
+    
 if __name__ == "__main__":
     app()

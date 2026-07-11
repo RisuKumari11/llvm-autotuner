@@ -1,0 +1,13 @@
+nohup: ignoring input
+gemm best=9888070
+2mm best=9914425
+3mm best=10037561
+atax best=9683032
+bicg best=9690012
+mvt best=9695886
+gesummv best=9674689
+jacobi-2d best=10586221
+seidel-2d best=10591844
+heat-3d best=10273004
+correlation best=9991378
+covariance best=9969710

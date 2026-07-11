@@ -1,0 +1,26 @@
+                      Best instruction count per method (lower is better)                       
+┏━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━┓
+┃       bench ┃        O2 ┃        O3 ┃     random ┃  hillclimb ┃ rand/O2 ┃  hc/O2 ┃ beats O3? ┃
+┡━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━┩
+│         2mm │ 6,061,413 │ 5,997,876 │ 10,043,830 │  9,914,425 │  0.603x │ 0.611x │        no │
+│         3mm │ 6,111,993 │ 6,013,848 │ 10,276,818 │ 10,037,561 │  0.595x │ 0.609x │        no │
+│        atax │ 5,982,287 │ 5,979,873 │  9,725,555 │  9,683,032 │  0.615x │ 0.618x │        no │
+│        bicg │ 5,988,559 │ 5,988,536 │  9,707,599 │  9,690,012 │  0.617x │ 0.618x │        no │
+│ correlation │ 6,039,999 │ 6,015,165 │ 10,038,406 │  9,991,378 │  0.602x │ 0.605x │        no │
+│  covariance │ 6,032,761 │ 6,011,066 │ 10,022,402 │  9,969,710 │  0.602x │ 0.605x │        no │
+│        gemm │ 6,045,678 │ 6,069,622 │ 10,121,499 │  9,888,070 │  0.597x │ 0.611x │        no │
+│     gesummv │ 5,979,420 │ 5,979,408 │  9,692,706 │  9,674,689 │  0.617x │ 0.618x │        no │
+│     heat-3d │ 6,406,158 │ 6,331,289 │ 11,838,602 │ 10,273,004 │  0.541x │ 0.624x │        no │
+│   jacobi-2d │ 6,169,510 │ 6,135,545 │ 11,018,104 │ 10,586,221 │  0.560x │ 0.583x │        no │
+│         mvt │ 5,994,110 │ 5,994,119 │  9,725,506 │  9,695,886 │  0.616x │ 0.618x │        no │
+│   seidel-2d │ 6,513,305 │ 6,510,733 │ 11,154,147 │ 10,591,844 │  0.584x │ 0.615x │        no │
+└─────────────┴───────────┴───────────┴────────────┴────────────┴─────────┴────────┴───────────┘
+geomean speedup vs O2 (random): 0.595x
+benchmarks where hillclimb beats O3: 0/12
+geomean speedup vs O2 (hillclimb): 0.611x
+benchmarks where hillclimb beats O3: 0/12
+
+Hill Climbing consistently outperformed Random Search across all 12 PolyBench benchmarks. 
+The geometric mean instruction-count ratio relative to LLVM -O2 improved from 0.595× for Random Search to 0.611× for Hill Climbing, corresponding to a 2.66% average improvement. 
+The largest gains were observed on stencil kernels, with Heat-3D improving by approximately 13.2%. 
+Although neither search method surpassed LLVM -O2 or -O3, the results demonstrate that guided local search is more effective than uninformed random exploration for discovering compiler pass sequences.
