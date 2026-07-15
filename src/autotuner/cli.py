@@ -84,7 +84,7 @@ def compare():
     base = base.pivot(index="bench", columns="level", values="instr")
 
     frames = []
-    for m in ("random", "hillclimb"):
+    for m in ("random", "hillclimb", "llm_oneshot"):
         df = store.load(f"search_{m}")
         best = (df.dropna(subset=["instr"])
                   .groupby("bench")["instr"].min().rename(m))
@@ -93,15 +93,25 @@ def compare():
 
     t = Table(title="Best instruction count per method (lower is better)")
     for col in ["bench", "O2", "O3", "random", "hillclimb",
-                "rand/O2", "hc/O2", "beats O3?"]:
+                "llm_oneshot",
+                "rand/O2", "hc/O2", "llm/O2",
+                "beats O3?"]:
         t.add_column(col, justify="right")
     for bench, r in tbl.iterrows():
-        t.add_row(bench, f"{int(r['O2']):,}", f"{int(r['O3']):,}",
-                  f"{int(r['random']):,}", f"{int(r['hillclimb']):,}",
-                  f"{r['O2']/r['random']:.3f}x", f"{r['O2']/r['hillclimb']:.3f}x",
-                  "yes" if r["hillclimb"] < r["O3"] else "no")
+        t.add_row(
+            bench,
+            f"{int(r['O2']):,}",
+            f"{int(r['O3']):,}",
+            f"{int(r['random']):,}",
+            f"{int(r['hillclimb']):,}",
+            f"{int(r['llm_oneshot']):,}",
+            f"{r['O2']/r['random']:.3f}x",
+            f"{r['O2']/r['hillclimb']:.3f}x",
+            f"{r['O2']/r['llm_oneshot']:.3f}x",
+            "yes" if r["hillclimb"] < r["O3"] else "no"
+        )
     console.print(t)
-    for m in ("random", "hillclimb"):
+    for m in ("random", "hillclimb", "llm_oneshot"):
         # vals = (tbl["O2"] / tbl[m]).values
         # print("DEBUG", m, vals)
 
@@ -117,6 +127,11 @@ def compare():
         #             f"{int((tbl['hillclimb'] < tbl['O3']).sum())}/{len(tbl)}")
         beats = int((tbl["hillclimb"] < tbl["O3"]).sum())
         console.print(f"benchmarks where hillclimb beats O3: {beats}/{len(tbl)}")
+llm = store.load("search_llm_oneshot")
+valid_rate = llm["passes"].ne("").mean()
+console.print(f"LLM valid-proposal rate: {valid_rate:.0%}")
+console.print(f"LLM mean attempts per accepted proposal: "
+                f"{llm.loc[llm['passes'].ne(''), 'llm_attempts'].mean():.2f}")
     
 @app.command()
 def validate():
@@ -144,6 +159,40 @@ def validate():
                      "speedup": wo.median_s / wt.median_s})
         console.print(f"{b['name']}: {wo.median_s/wt.median_s:.3f}x vs O2 (wall-clock)")
     store.append(rows, "wallclock_validation")
+@app.command()
+def llm_search(budget: int = 60, backend: str = "ollama",
+               model: str = "", temperature: float = 0.8, seed: int = 0):
+    """LLM one-shot proposals as a candidate source, budget-matched to search."""
+    import time as _t
+    from .search.evaluate import Evaluator
+    from .llm.features import ir_features
+    from .llm.agent import propose
+
+    all_rows = []
+    for b in BENCH_CFG["benchmarks"]:
+        ev = Evaluator(b["name"], b["path"])
+        feats = ir_features(ev._linked)
+        best = None
+        while ev.evals < budget:
+            seq, attempts = propose(b["name"], feats, backend=backend,
+                                    model=model or None,
+                                    temperature=temperature)
+            if seq is None:
+                ev.evals += 1          # failed proposal still costs budget
+                val = None
+            else:
+                val = ev.score(seq)
+            if val is not None and (best is None or val < best):
+                best = val
+            all_rows.append({
+                "method": "llm_oneshot", "bench": b["name"], "seed": seed,
+                "eval_idx": ev.evals,
+                "passes": ",".join(seq) if seq else "",
+                "instr": val, "best_so_far": best,
+                "llm_attempts": attempts, "ts": _t.time(),
+            })
+        console.print(f"[green]{b['name']}[/] best={best}")
+    store.append(all_rows, "search_llm_oneshot")
     
 if __name__ == "__main__":
     app()
