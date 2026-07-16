@@ -102,3 +102,40 @@ Hill Climb required between 23 and 60 evaluations to discover its strongest solu
 ### Conclusion
 
 The sample-efficiency results highlight the trade-off between one-shot generation and feedback-driven optimization. The LLM can occasionally discover strong optimization sequences very quickly, as observed on `jacobi-2d`, but its performance is inconsistent. Hill Climb requires more evaluations but reliably improves candidate quality over time, ultimately producing the strongest search-based results across almost all benchmarks.
+
+---
+
+# Week 3 Findings
+
+## Feedback Loop Results
+
+The feedback-based LLM search outperformed the one-shot LLM search on 7 of 12 benchmarks.
+The feedback loop achieved a valid proposal rate of 99.57%.
+
+The strongest improvements were observed on:
+- 3mm
+- atax
+- bicg
+- correlation
+- covariance
+- mvt
+- seidel-2d
+
+However, the feedback loop did not consistently outperform one-shot generation and lost on:
+- 2mm
+- gemm
+- gesummv
+- heat-3d
+- jacobi-2d
+
+This suggests that measured feedback can improve proposal quality, but the benefit depends on benchmark characteristics.
+
+---
+
+## Feedback Loop vs Hill-Climb
+
+The feedback-based LLM search outperformed hill-climb on only 1 of 12 benchmarks (bicg).
+
+Although feedback improved performance relative to one-shot LLM generation on several benchmarks, hill-climbing remained the strongest overall search strategy.
+
+This suggests that measured feedback alone is insufficient to consistently outperform iterative local search.

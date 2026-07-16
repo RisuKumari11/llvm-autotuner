@@ -7,9 +7,10 @@ from .config import BENCH_CFG
 from .baselines import build_baseline, LEVELS
 from .measure import instruction_count, wall_clock
 from . import store
+from rich.console import Console
 
 app = typer.Typer()
-console = Console()
+console = Console(width=180)
 WORK = Path("/tmp/autotuner")
 
 @app.command()
@@ -84,7 +85,7 @@ def compare():
     base = base.pivot(index="bench", columns="level", values="instr")
 
     frames = []
-    for m in ("random", "hillclimb", "llm_oneshot"):
+    for m in ("random", "hillclimb", "llm_oneshot", "llm_loop"):
         df = store.load(f"search_{m}")
         best = (df.dropna(subset=["instr"])
                   .groupby("bench")["instr"].min().rename(m))
@@ -93,9 +94,8 @@ def compare():
 
     t = Table(title="Best instruction count per method (lower is better)")
     for col in ["bench", "O2", "O3", "random", "hillclimb",
-                "llm_oneshot",
-                "rand/O2", "hc/O2", "llm/O2",
-                "beats O3?"]:
+                "llm_oneshot", "llm_loop", 
+                "rand/O2", "hc/O2", "llm/O2", "llm loop/O2"]:
         t.add_column(col, justify="right")
     for bench, r in tbl.iterrows():
         t.add_row(
@@ -105,13 +105,14 @@ def compare():
             f"{int(r['random']):,}",
             f"{int(r['hillclimb']):,}",
             f"{int(r['llm_oneshot']):,}",
+            f"{int(r['llm_loop']):,}",
             f"{r['O2']/r['random']:.3f}x",
             f"{r['O2']/r['hillclimb']:.3f}x",
             f"{r['O2']/r['llm_oneshot']:.3f}x",
-            "yes" if r["hillclimb"] < r["O3"] else "no"
+            f"{r['O2']/r['llm_loop']:.3f}x",
         )
     console.print(t)
-    for m in ("random", "hillclimb", "llm_oneshot"):
+    for m in ("random", "hillclimb", "llm_oneshot", "llm_loop"):
         # vals = (tbl["O2"] / tbl[m]).values
         # print("DEBUG", m, vals)
 
@@ -125,12 +126,17 @@ def compare():
         console.print(f"geomean speedup vs O2 ({m}): {g:.3f}x")
         # console.print(f"benchmarks where hillclimb beats O3: "
         #             f"{int((tbl['hillclimb'] < tbl['O3']).sum())}/{len(tbl)}")
-        beats = int((tbl["hillclimb"] < tbl["O3"]).sum())
-        console.print(f"benchmarks where hillclimb beats O3: {beats}/{len(tbl)}")
-llm = store.load("search_llm_oneshot")
-valid_rate = llm["passes"].ne("").mean()
-console.print(f"LLM valid-proposal rate: {valid_rate:.0%}")
-console.print(f"LLM mean attempts per accepted proposal: "
+    console.print()    
+    beats = int((tbl["hillclimb"] < tbl["O3"]).sum())
+    console.print(f"benchmarks where hillclimb beats O3: {beats}/{len(tbl)}")
+    beats = int((tbl["llm_oneshot"] < tbl["O3"]).sum())
+    console.print(f"benchmarks where llm oneshot beats O3: {beats}/{len(tbl)}")
+    beats = int((tbl["llm_loop"] < tbl["O3"]).sum())
+    console.print(f"benchmarks where llm loop beats O3: {beats}/{len(tbl)}")
+    llm = store.load("search_llm_oneshot")
+    valid_rate = llm["passes"].ne("").mean()
+    console.print(f"LLM valid-proposal rate: {valid_rate:.0%}")
+    console.print(f"LLM mean attempts per accepted proposal: "
                 f"{llm.loc[llm['passes'].ne(''), 'llm_attempts'].mean():.2f}")
     
 @app.command()
@@ -193,6 +199,27 @@ def llm_search(budget: int = 60, backend: str = "ollama",
             })
         console.print(f"[green]{b['name']}[/] best={best}")
     store.append(all_rows, "search_llm_oneshot")
+   
+@app.command()
+def llm_loop(budget: int = 60, proposals_per_round: int = 5,
+             backend: str = "ollama", model: str = "",
+             temperature: float = 0.8, seed: int = 0):
+    from .search.evaluate import Evaluator
+    from .llm.features import ir_features
+    from .llm.agent import feedback_loop
+    all_rows = []
+    for b in BENCH_CFG["benchmarks"]:
+        # if b["name"] != "gemm":
+        #     continue
+        ev = Evaluator(b["name"], b["path"])
+        rows = feedback_loop(ev, b["name"], ir_features(ev._linked),
+                             budget, proposals_per_round,
+                             backend=backend, model=model or None,
+                             temperature=temperature, seed=seed)
+        all_rows += rows
+        best = min((r["instr"] for r in rows if r["instr"] is not None), default=None)
+        console.print(f"[green]{b['name']}[/] best={best}")
+    store.append(all_rows, "search_llm_loop")    
     
 if __name__ == "__main__":
     app()
