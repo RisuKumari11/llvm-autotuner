@@ -9,11 +9,13 @@ def test_loop_pass_wrapping():
 def test_function_passes_untouched():
     assert build_pass_string(["sroa", "gvn"]) == "sroa,gvn"
 
+@pytest.mark.integration
 def test_invalid_pass_raises(tmp_path):
     bc = emit_linked_bc("linear-algebra/blas/gemm", "MINI_DATASET", tmp_path)
     with pytest.raises(InvalidCandidate):
         compile_with_passes(bc, ["not-a-real-pass"], tmp_path / "bin")
 
+@pytest.mark.integration
 def test_valid_sequence_builds(tmp_path):
     bc = emit_linked_bc("linear-algebra/blas/gemm", "MINI_DATASET", tmp_path)
     b = compile_with_passes(bc, ["sroa", "instcombine", "gvn"], tmp_path / "bin")
