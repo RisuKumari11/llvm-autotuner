@@ -1,6 +1,6 @@
 # llvm-autotuner: LLM-in-the-loop LLVM Pass Ordering Autotuner
 
-One-line: Searches LLVM optimization pass orderings using classical search algorithms and a local LLM-guided feedback loop, evaluated using deterministic instruction counts and validated with wall-clock measurements.
+Searches LLVM optimization pass orderings using classical search algorithms and a local LLM-guided feedback loop, evaluated using deterministic instruction counts and validated with wall-clock measurements.
 
 ---
 
