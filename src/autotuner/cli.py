@@ -201,19 +201,26 @@ def llm_search(budget: int = 60, backend: str = "ollama",
     store.append(all_rows, "search_llm_oneshot")
    
 @app.command()
-def llm_loop(budget: int = 60, proposals_per_round: int = 5,
+def llm_loop(budget: int = 60, proposals_per_round: int = 5, history_size: int = 8, no_features: bool = False, 
              backend: str = "ollama", model: str = "",
              temperature: float = 0.8, seed: int = 0):
     from .search.evaluate import Evaluator
     from .llm.features import ir_features
     from .llm.agent import feedback_loop
+    ABLATION_BENCHES = {
+        "gemm",
+        "atax",
+        "jacobi-2d",
+        "correlation",
+        "mvt",
+    }
     all_rows = []
     for b in BENCH_CFG["benchmarks"]:
-        # if b["name"] != "gemm":
-        #     continue
+        if b["name"] not in ABLATION_BENCHES:
+            continue
         ev = Evaluator(b["name"], b["path"])
-        rows = feedback_loop(ev, b["name"], ir_features(ev._linked),
-                             budget, proposals_per_round,
+        rows = feedback_loop(ev, b["name"], {} if no_features else ir_features(ev._linked),
+                             budget, proposals_per_round, history_size=history_size,
                              backend=backend, model=model or None,
                              temperature=temperature, seed=seed)
         all_rows += rows
