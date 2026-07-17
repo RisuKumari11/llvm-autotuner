@@ -13,3 +13,7 @@ llm:
 		--budget 60 \
 		--backend ollama \
 		--temperature 0.8
+smoke:
+	python -m src.autotuner.cli baselines
+	python -m src.autotuner.cli search --method hillclimb --budget 8 --seed 0
+	python -m src.autotuner.cli compare		

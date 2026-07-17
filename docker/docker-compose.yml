@@ -1,0 +1,12 @@
+services:
+  core:
+    build: { context: .., dockerfile: docker/Dockerfile }
+    volumes:
+      - ../results:/app/results
+      - ../plots:/app/plots
+  ollama:
+    image: ollama/ollama
+    profiles: ["llm"]        # only starts with --profile llm
+    volumes: [ "ollama:/root/.ollama" ]
+volumes:
+  ollama:
