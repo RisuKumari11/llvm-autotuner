@@ -7,7 +7,6 @@ from .config import BENCH_CFG
 from .baselines import build_baseline, LEVELS
 from .measure import instruction_count, wall_clock
 from . import store
-from rich.console import Console
 
 app = typer.Typer()
 console = Console(width=180)
