@@ -208,20 +208,33 @@ This indicates that LLVM's hand-engineered optimization pipeline remains a highl
 ## Repository Structure
 
 ```text
-src/autotuner/
-├── llm/            # LLM proposer and feedback loop
-├── search/         # Random and hill-climbing search
-├── compile.py      # LLVM pass application
-├── measure.py      # Callgrind and wall-clock measurement
-├── cli.py          # Command-line interface
-
-configs/
-├── benchmarks.yaml
-
-results/
-plots/
-tests/
-docker/
+llvm-autotuner/
+├── src/autotuner/
+│   ├── llm/                 # LLM proposer, prompts, feedback loop
+│   ├── search/              # Random and hill-climbing search
+│   ├── cli.py               # Main command-line interface
+│   ├── compile.py           # LLVM pass application
+│   ├── measure.py           # Callgrind and wall-clock measurement
+│   ├── ir.py               # LLVM IR generation utilities
+│   ├── store.py            # Experiment result storage
+│   └── stats.py            # Analysis and statistics
+│
+├── configs/
+│   └── benchmarks.yaml      # Benchmark configuration
+│
+├── scripts/
+│   ├── plot_headline.py     # Generates headline figure
+│   ├── ablation_table.py    # Ablation analysis
+│   └── fetch_benchmarks.sh  # Downloads PolyBench
+│
+├── docker/
+│   ├── Dockerfile
+│   └── docker-compose.yml
+│
+├── tests/                   # Unit and integration tests
+├── results_final/           # Frozen experiment results
+├── plots/                   # Figures and visualizations
+└── .github/workflows/       # CI pipeline
 ```
 
 ---
@@ -244,13 +257,4 @@ GitHub Actions automatically runs:
 - Smoke-test benchmark execution
 - Docker build validation
 
----
 
-## Future Work
-
-- Reinforcement-learning-based pass sequence optimization
-- Multi-objective optimization (runtime + code size)
-- Larger benchmark suites
-- Runtime-aware reward functions
-- Retrieval-augmented compiler optimization memories
-- Hybrid hill-climb + LLM proposal strategies
