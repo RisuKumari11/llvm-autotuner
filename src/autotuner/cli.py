@@ -207,17 +207,17 @@ def llm_loop(budget: int = 60, proposals_per_round: int = 5, history_size: int =
     from .search.evaluate import Evaluator
     from .llm.features import ir_features
     from .llm.agent import feedback_loop
-    ABLATION_BENCHES = {
-        "gemm",
-        "atax",
-        "jacobi-2d",
-        "correlation",
-        "mvt",
-    }
+    # ABLATION_BENCHES = {
+    #     "gemm",
+    #     "atax",
+    #     "jacobi-2d",
+    #     "correlation",
+    #     "mvt",
+    # }
     all_rows = []
     for b in BENCH_CFG["benchmarks"]:
-        if b["name"] not in ABLATION_BENCHES:
-            continue
+        # if b["name"] not in ABLATION_BENCHES:
+        #     continue
         ev = Evaluator(b["name"], b["path"])
         rows = feedback_loop(ev, b["name"], {} if no_features else ir_features(ev._linked),
                              budget, proposals_per_round, history_size=history_size,
