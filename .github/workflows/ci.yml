@@ -1,0 +1,31 @@
+name: ci
+on: [push, pull_request]
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install ruff pytest pyyaml pydantic pandas numpy scipy pyarrow
+      - run: ruff check src tests
+      - run: pytest tests -q -k "not integration"
+
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y clang llvm valgrind
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install pyyaml pydantic pandas numpy scipy rich typer pytest pyarrow
+      - run: bash scripts/fetch_benchmarks.sh benchmarks/polybench
+      - run: POLYBENCH_ROOT=$PWD/benchmarks/polybench python -m src.autotuner.cli search --method hillclimb --budget 5 --seed 0
+        env: { SMOKE_BENCH: "2" }
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f docker/Dockerfile -t autotuner .
