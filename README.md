@@ -12,14 +12,6 @@ Across 12 PolyBench kernels under a fixed budget of 60 evaluations per benchmark
 
 ---
 
-## Demo
-
-![demo](assets/demo.gif)
-
-The demo shows LLVM pass-sequence generation, evaluation using Callgrind instruction counts, and comparison of random search, hill-climbing, and LLM-guided optimization strategies.
-
----
-
 ## Quickstart (No LLM Required)
 
 Run the reproducible smoke test:
