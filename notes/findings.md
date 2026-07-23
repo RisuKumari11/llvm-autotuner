@@ -1,141 +1,157 @@
-# Week 3 Findings
+# Findings
 
-## Geomean Performance vs O2
+## Week 1 – Baseline Measurements
 
-All methods were evaluated with an equal budget of 60 evaluations per benchmark.
+### Baseline instruction counts
 
-| Method | Geomean vs O2 |
-|----------|----------|
-| Random Search | 0.595x |
-| LLM One-Shot | 0.606x |
-| Hill Climb | 0.611x |
+The LLVM optimization levels were evaluated on the selected PolyBench benchmarks to establish reference instruction counts.
 
-### Observation
+- `-O2` consistently produced substantial reductions over `-O0`.
+- `-O3` provided modest improvements over `-O2` on several benchmarks but was not universally superior.
 
-Hill Climb achieved the best overall performance, followed by LLM One-Shot and Random Search.
-
-Ranking:
-
-1. Hill Climb (0.611x)
-2. LLM One-Shot (0.606x)
-3. Random Search (0.595x)
-
-This suggests that incorporating feedback from previous evaluations is more effective than both uninformed random exploration and one-shot LLM-generated optimization sequences.
+These baselines serve as the reference for all subsequent search methods.
 
 ---
 
-## LLM vs Hill Climb
+## Week 2 – Search Strategy Comparison
 
-The LLM outperformed Hill Climb on only 1 out of 12 benchmarks.
+### Geometric Mean Improvement (vs `-O2`)
 
-| Benchmark | Hill Climb | LLM One-Shot |
-|------------|------------|------------|
-| jacobi-2d | 10,586,221 | 10,187,738 |
+All methods were evaluated under the same search budget.
 
-### Observation
+| Method | Geomean vs `-O2` |
+|---------|-----------------:|
+| Random Search | **0.997×** |
+| Hill Climb | **1.003×** |
+| LLM One-Shot | **1.003×** |
 
-Hill Climb produced better results on 11 out of 12 benchmarks.
+### Observations
 
-The only benchmark where the LLM achieved a lower instruction count than Hill Climb was `jacobi-2d`.
-
-`jacobi-2d` is a loop-heavy numerical kernel dominated by floating-point computations and regular memory access patterns. While this may indicate that LLM-generated optimization sequences can occasionally discover strong transformations for structured numerical workloads, a single benchmark is insufficient to establish a broader trend.
-
-Overall, the results indicate that feedback-driven search is generally more reliable than one-shot LLM proposals.
-
----
-
-## LLM Sequence Diversity
-
-Five representative LLM-generated pass sequences were inspected manually:
-
-1. early-cse, instcombine, reassociate, gvn, loop-simplify, indvars, loop-unroll, slp-vectorizer, tailcallelim, adce, dce, jump-threading
-2. sroa, early-cse, instcombine, simplifycfg, reassociate, gvn, sccp, correlated-propagation, jump-threading, adce, dce, tailcallelim
-3. early-cse, simplifycfg, loop-simplify, indvars, loop-unroll
-4. sroa, early-cse, instcombine, simplifycfg, loop-simplify, loop-rotate, licm, indvars, loop-unroll, gvn, sccp, tailcallelim
-5. sroa, early-cse, instcombine, simplifycfg, loop-simplify, loop-rotate, licm, indvars, loop-unroll, gvn, sccp, adce
-
-### Observation
-
-The generated sequences are not identical. The LLM consistently uses a common optimization template consisting of:
-
-- Cleanup passes (sroa, early-cse, instcombine, simplifycfg)
-- Loop canonicalization (loop-simplify, loop-rotate)
-- Loop optimization (licm, indvars, loop-unroll)
-- Redundancy elimination (gvn, sccp)
-- Final cleanup (adce, dce, tailcallelim)
-
-However, the ordering, subset selection, and inclusion of vectorization-related passes vary across proposals. This indicates that the LLM explores multiple optimization strategies rather than repeatedly emitting the same pipeline with cosmetic changes.
-
-Overall, the proposal set exhibits moderate diversity: the model follows recognizable optimization patterns while still generating distinct candidate sequences.
+- Hill Climb and LLM One-Shot achieved essentially identical geometric-mean performance.
+- Random Search performed slightly worse than the other two methods.
+- Under the evaluated budget, no clear overall winner emerged between Hill Climb and LLM One-Shot.
 
 ---
 
-## Sample Efficiency
+### Benchmarks where LLM Outperformed Hill Climb
 
-To evaluate sample efficiency, Hill Climb's final best instruction count for each benchmark was used as the target. For every method, the earliest evaluation that achieved this target was recorded.
+Comparing the final best instruction counts:
 
-### Results
+| Benchmark | Better Method |
+|-----------|---------------|
+| atax | LLM One-Shot |
+| covariance | LLM One-Shot |
+
+Across the remaining benchmarks, Hill Climb achieved lower instruction counts.
+
+Both `atax` and `covariance` belong to the PolyBench data-mining kernels and consist primarily of dense floating-point computations. While this suggests the LLM-generated pass sequences may be particularly effective for these workloads, the sample size is too small to draw broader conclusions.
+
+---
+
+### LLM Pass Sequence Diversity
+
+Inspection of representative LLM-generated pass sequences showed that:
+
+- Most sequences shared a common optimization structure.
+- Differences were primarily the ordering of several passes or the inclusion/removal of a small number of transformations.
+- The LLM generally produced conservative variations rather than completely different optimization pipelines.
+
+Overall, the generated sequences exhibited limited diversity.
+
+---
+
+### Sample Efficiency
+
+Sample efficiency was measured as the number of evaluations required for a method's **running best instruction count to match or outperform Hill Climb's final best instruction count** for each benchmark.
 
 | Benchmark | Random Search | LLM One-Shot | Hill Climb |
-|------------|------------|------------|------------|
-| 2mm | Never | Never | 55 |
-| 3mm | Never | Never | 48 |
-| atax | Never | Never | 32 |
-| bicg | Never | Never | 32 |
-| correlation | Never | Never | 51 |
-| covariance | Never | Never | 55 |
-| gemm | Never | Never | 34 |
-| gesummv | Never | Never | 30 |
-| heat-3d | Never | Never | 60 |
-| jacobi-2d | Never | 12 | 57 |
-| mvt | Never | Never | 52 |
-| seidel-2d | Never | Never | 23 |
+|-----------|---------------|--------------|-----------:|
+| 2mm | Never | Never | 26 |
+| 3mm | Never | Never | 24 |
+| atax | Never | 4 | 17 |
+| bicg | Never | Never | 38 |
+| correlation | Never | Never | 41 |
+| covariance | Never | 3 | 13 |
+| gemm | Never | Never | 58 |
+| gesummv | Never | Never | 17 |
+| heat-3d | Never | Never | 58 |
+| jacobi-2d | Never | Never | 22 |
+| mvt | Never | Never | 10 |
+| seidel-2d | Never | Never | 25 |
 
-### Observation
+### Observations
 
-Random Search never matched Hill Climb's final best result on any benchmark within the 60-evaluation budget.
-
-LLM One-Shot matched or exceeded Hill Climb's final result on only one benchmark (`jacobi-2d`), achieving the target after just 12 evaluations. On all remaining benchmarks, the LLM failed to reach Hill Climb's final best solution.
-
-Hill Climb required between 23 and 60 evaluations to discover its strongest solutions, demonstrating the value of iterative feedback and local search.
-
-### Conclusion
-
-The sample-efficiency results highlight the trade-off between one-shot generation and feedback-driven optimization. The LLM can occasionally discover strong optimization sequences very quickly, as observed on `jacobi-2d`, but its performance is inconsistent. Hill Climb requires more evaluations but reliably improves candidate quality over time, ultimately producing the strongest search-based results across almost all benchmarks.
+- Hill Climb reached its own final solution on every benchmark.
+- LLM One-Shot matched or exceeded Hill Climb's final instruction count on two benchmarks (`atax` and `covariance`), doing so in only 4 and 3 evaluations respectively.
+- Random Search never reached Hill Climb's final quality within the search budget.
+- Although Hill Climb and LLM One-Shot achieved nearly identical geometric-mean performance overall, they typically converged to different local optima.
 
 ---
 
-# Week 4 Findings
+## Week 3 – Feedback Loop
 
-## Feedback Loop Results
+A feedback-based LLM optimization loop was evaluated against the original one-shot prompting strategy.
 
-The feedback-based LLM search outperformed the one-shot LLM search on 7 of 12 benchmarks.
-The feedback loop achieved a valid proposal rate of 99.57%.
+### Geometric Mean (vs `-O2`)
 
-The strongest improvements were observed on:
-- 3mm
-- atax
-- bicg
-- correlation
-- covariance
-- mvt
-- seidel-2d
+| Method | Geomean vs `-O2` |
+|---------|-----------------:|
+| LLM One-Shot | **1.003×** |
+| LLM Feedback Loop | **0.999×** |
 
-However, the feedback loop did not consistently outperform one-shot generation and lost on:
-- 2mm
-- gemm
-- gesummv
-- heat-3d
-- jacobi-2d
+### Observations
 
-This suggests that measured feedback can improve proposal quality, but the benefit depends on benchmark characteristics.
+- The feedback loop did not improve overall optimization quality.
+- Under the evaluated search budget, iterative prompting offered no measurable advantage over one-shot generation.
 
 ---
 
-## Feedback Loop vs Hill-Climb
+### Proposal Quality
 
-The feedback-based LLM search outperformed hill-climb on only 1 of 12 benchmarks (bicg).
+- Valid proposal rate: **100%**
+- Mean attempts per accepted proposal: **1.07**
 
-Although feedback improved performance relative to one-shot LLM generation on several benchmarks, hill-climbing remained the strongest overall search strategy.
+The prompt consistently generated syntactically valid LLVM optimization pipelines, requiring very few retries.
 
-This suggests that measured feedback alone is insufficient to consistently outperform iterative local search.
+---
+
+### Benchmarks Beating `-O3`
+
+| Method | Benchmarks Better than `-O3` |
+|---------|-----------------------------:|
+| Hill Climb | 6 / 12 |
+| LLM One-Shot | 6 / 12 |
+| LLM Feedback Loop | 4 / 12 |
+
+Hill Climb and LLM One-Shot both outperformed LLVM's `-O3` optimization level on six benchmarks, while the feedback loop achieved this on four benchmarks.
+
+---
+
+## Week 4 – Ablation Study
+
+To understand which components contributed to feedback-loop performance, two ablations were evaluated.
+
+| Variant | Geomean vs `-O2` |
+|---------|-----------------:|
+| One-Shot | **1.000×** |
+| Loop (History = 8) | **0.995×** |
+| Loop (History = 2) | **0.999×** |
+| Loop (No Static Features) | **0.999×** |
+
+### Observations
+
+- Shortening the optimization history produced almost no change in performance.
+- Removing LLVM IR static features also had minimal impact.
+- Under the evaluated search budget and benchmark subset, neither longer optimization histories nor static program features produced measurable improvements.
+- These results suggest that the current prompting strategy does not effectively exploit the additional contextual information, although richer program representations or stronger feedback mechanisms may improve performance in future work.
+
+---
+
+## Overall Conclusions
+
+- Hill Climb and LLM One-Shot achieved comparable overall optimization quality.
+- Random Search was consistently less effective.
+- The LLM generated mostly conservative variations of similar optimization pipelines.
+- Feedback-based prompting did not improve optimization quality over one-shot prompting.
+- The LLM was able to outperform Hill Climb on two benchmarks (`atax` and `covariance`), indicating that LLM-guided search can occasionally discover better optimization pipelines than deterministic local search.
+- Future work should investigate richer program representations, stronger search strategies, and more informative feedback signals to better exploit LLM reasoning during compiler optimization.

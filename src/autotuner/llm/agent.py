@@ -47,7 +47,12 @@ def feedback_loop(ev, bench_name: str, features: dict,
                 ev.evals += 1
                 val = None
             else:
+                before = ev.evals
                 val = ev.score(seq)
+
+                # Cached proposal: don't consume budget or log it.
+                if before == ev.evals:
+                    continue
             if val is not None and (best is None or val < best):
                 best = val
             rows.append({

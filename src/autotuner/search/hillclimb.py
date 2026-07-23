@@ -34,9 +34,24 @@ def hill_climb(ev: Evaluator, budget: int, seed: int,
     current, cur_val = list(O2_LIKE), ev.score(O2_LIKE)
     best = cur_val
     stale = 0
+    rows.append({
+        "method": "hillclimb",
+        "bench": ev.bench_name,
+        "seed": seed,
+        "eval_idx": ev.evals,
+        "passes": ",".join(current),
+        "instr": cur_val,
+        "best_so_far": best,
+        "ts": time.time(),
+    })
     while ev.evals < budget:
         cand = mutate(current, rng)
+        before = ev.evals
         val = ev.score(cand)
+        # Cached candidates do not consume an evaluation budget.
+        # Skip logging them so eval_idx remains unique.
+        if before == ev.evals:
+            continue
         improved = val is not None and (cur_val is None or val < cur_val)
         if improved:
             current, cur_val, stale = cand, val, 0
@@ -44,15 +59,34 @@ def hill_climb(ev: Evaluator, budget: int, seed: int,
             stale += 1
         if val is not None and (best is None or val < best):
             best = val
-        if stale >= restart_after:            # random restart to escape plateaus
+        rows.append({
+            "method": "hillclimb",
+            "bench": ev.bench_name,
+            "seed": seed,
+            "eval_idx": ev.evals,
+            "passes": ",".join(cand),
+            "instr": val,
+            "best_so_far": best,
+            "ts": time.time(),
+        })    
+        if stale >= restart_after and ev.evals < budget:            # random restart to escape plateaus
             current = sample_sequence(rng)
+            before = ev.evals
             cur_val = ev.score(current)
             stale = 0
-            if cur_val is not None and (best is None or cur_val < best):
-                best = cur_val
-        rows.append({
-            "method": "hillclimb", "bench": ev.bench_name, "seed": seed,
-            "eval_idx": ev.evals, "passes": ",".join(cand),
-            "instr": val, "best_so_far": best, "ts": time.time(),
-        })
+            if before != ev.evals:
+                if cur_val is not None and (best is None or cur_val < best):
+                    best = cur_val
+                rows.append({
+                    "method": "hillclimb",
+                    "bench": ev.bench_name,
+                    "seed": seed,
+                    "eval_idx": ev.evals,
+                    "passes": ",".join(current),
+                    "instr": cur_val,
+                    "best_so_far": best,
+                    "ts": time.time(),
+                    "event": "restart",
+                })  
+
     return rows

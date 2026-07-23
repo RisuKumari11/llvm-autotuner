@@ -31,8 +31,21 @@ def compile_with_passes(linked_bc: Path, passes: list[str], out_bin: Path,
     try:
         subprocess.run([OPT, f"-passes={pass_str}", str(linked_bc), "-o", str(tuned)],
                        check=True, capture_output=True, timeout=timeout)
-        subprocess.run([CLANG, str(tuned), "-lm", "-o", str(out_bin)],
-                       check=True, capture_output=True, timeout=timeout)
+        subprocess.run(
+            [
+                CLANG,
+                "-O2",
+                "-Xclang",
+                "-disable-llvm-passes",
+                str(tuned),
+                "-lm",
+                "-o",
+                str(out_bin),
+            ],
+            check=True,
+            capture_output=True,
+            timeout=timeout,
+        )
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
         stderr = getattr(e, "stderr", b"") or b""
         raise InvalidCandidate(f"passes={pass_str}: {stderr.decode()[:300]}") from e

@@ -112,19 +112,9 @@ def compare():
         )
     console.print(t)
     for m in ("random", "hillclimb", "llm_oneshot", "llm_loop"):
-        # vals = (tbl["O2"] / tbl[m]).values
-        # print("DEBUG", m, vals)
-
-        # g = geomean(vals)
-
-        # print("DEBUG g =", g)
         g = geomean((tbl["O2"] / tbl[m]).values)
-        # console.print(
-        #     f"geomean speedup vs O2 ({m}): [bold]{g:.3f}x[/]"
-        # )
+
         console.print(f"geomean speedup vs O2 ({m}): {g:.3f}x")
-        # console.print(f"benchmarks where hillclimb beats O3: "
-        #             f"{int((tbl['hillclimb'] < tbl['O3']).sum())}/{len(tbl)}")
     console.print()    
     beats = int((tbl["hillclimb"] < tbl["O3"]).sum())
     console.print(f"benchmarks where hillclimb beats O3: {beats}/{len(tbl)}")
@@ -186,7 +176,11 @@ def llm_search(budget: int = 60, backend: str = "ollama",
                 ev.evals += 1          # failed proposal still costs budget
                 val = None
             else:
+                before = ev.evals
                 val = ev.score(seq)
+                # Cached candidate: don't consume budget or log it.
+                if before == ev.evals:
+                    continue
             if val is not None and (best is None or val < best):
                 best = val
             all_rows.append({
@@ -200,9 +194,12 @@ def llm_search(budget: int = 60, backend: str = "ollama",
     store.append(all_rows, "search_llm_oneshot")
    
 @app.command()
-def llm_loop(budget: int = 60, proposals_per_round: int = 5, history_size: int = 8, no_features: bool = False, 
+# def llm_loop(budget: int = 60, proposals_per_round: int = 5, history_size: int = 8, no_features: bool = False,
+#              backend: str = "ollama", model: str = "",
+#              temperature: float = 0.8, seed: int = 0):
+def llm_loop(budget: int = 60, proposals_per_round: int = 5, history_size: int = 8, 
              backend: str = "ollama", model: str = "",
-             temperature: float = 0.8, seed: int = 0):
+             temperature: float = 0.8, seed: int = 0):    
     from .search.evaluate import Evaluator
     from .llm.features import ir_features
     from .llm.agent import feedback_loop
@@ -218,7 +215,11 @@ def llm_loop(budget: int = 60, proposals_per_round: int = 5, history_size: int =
         # if b["name"] not in ABLATION_BENCHES:
         #     continue
         ev = Evaluator(b["name"], b["path"])
-        rows = feedback_loop(ev, b["name"], {} if no_features else ir_features(ev._linked),
+        # rows = feedback_loop(ev, b["name"], {} if no_features else ir_features(ev._linked),
+        #                      budget, proposals_per_round, history_size=history_size,
+        #                      backend=backend, model=model or None,
+        #                      temperature=temperature, seed=seed)
+        rows = feedback_loop(ev, b["name"], ir_features(ev._linked),
                              budget, proposals_per_round, history_size=history_size,
                              backend=backend, model=model or None,
                              temperature=temperature, seed=seed)
