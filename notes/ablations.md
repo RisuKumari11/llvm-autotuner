@@ -22,7 +22,7 @@ Each experiment used the same search budget of **60 evaluations per benchmark**.
 |:--------|----------------------:|
 | LLM One-Shot | **1.000×** |
 | LLM Loop (History = 8) | **0.995×** |
-| LLM Loop (History = 2) | **0.999×** |
+| LLM Loop (History = 2) | **1.000x** |
 | LLM Loop (No IR Features) | **0.999×** |
 
 ---

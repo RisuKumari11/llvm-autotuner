@@ -17,3 +17,5 @@ smoke:
 	python -m src.autotuner.cli baselines
 	python -m src.autotuner.cli search --method hillclimb --budget 8 --seed 0
 	python -m src.autotuner.cli compare		
+ablations:
+	PYTHONPATH=. python scripts/ablation_table.py	

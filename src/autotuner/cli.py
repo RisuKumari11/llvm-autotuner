@@ -36,18 +36,18 @@ def baselines(callgrind: bool = True, timing: bool = False):
 
 @app.command()
 def report():
-    """Print baseline table with speedups vs O0."""
+    """Print baseline table (O2 vs O3)."""
     df = store.load("baselines")
     df = df.dropna(subset=["instr"])
     df = df.drop_duplicates(["bench", "level"], keep="last")
     piv = df.pivot(index="bench", columns="level", values="instr")
     t = Table(title="Instruction count (lower is better)")
     t.add_column("bench")
-    for lvl in LEVELS: 
+    for lvl in LEVELS:
         t.add_column(lvl, justify="right")
-    t.add_column("O2/O0", justify="right")
+    t.add_column("O2/O3", justify="right")
     for bench, r in piv.iterrows():
-        t.add_row(bench, *(f"{int(r[level]):,}" for level in LEVELS), f"{r['O0']/r['O2']:.2f}x")
+        t.add_row(bench, *(f"{int(r[level]):,}" for level in LEVELS), f"{r['O2']/r['O3']:.3f}x")
     console.print(t)
 
 @app.command()
@@ -194,39 +194,39 @@ def llm_search(budget: int = 60, backend: str = "ollama",
     store.append(all_rows, "search_llm_oneshot")
    
 @app.command()
-# def llm_loop(budget: int = 60, proposals_per_round: int = 5, history_size: int = 8, no_features: bool = False,
-#              backend: str = "ollama", model: str = "",
-#              temperature: float = 0.8, seed: int = 0):
-def llm_loop(budget: int = 60, proposals_per_round: int = 5, history_size: int = 8, 
+def llm_loop(budget: int = 60, proposals_per_round: int = 5, history_size: int = 8,
+             no_features: bool = False, benches: str = "",
              backend: str = "ollama", model: str = "",
-             temperature: float = 0.8, seed: int = 0):    
+             temperature: float = 0.8, seed: int = 0):
+    """LLM-in-the-loop feedback search.
+
+    --no-features       run with an empty feature dict (ablation A3)
+    --benches gemm,atax  restrict to a comma-separated subset (used for ablations)
+    """
     from .search.evaluate import Evaluator
     from .llm.features import ir_features
     from .llm.agent import feedback_loop
-    # ABLATION_BENCHES = {
-    #     "gemm",
-    #     "atax",
-    #     "jacobi-2d",
-    #     "correlation",
-    #     "mvt",
-    # }
+
+    bench_filter = {b.strip() for b in benches.split(",") if b.strip()} or None
+
     all_rows = []
     for b in BENCH_CFG["benchmarks"]:
-        # if b["name"] not in ABLATION_BENCHES:
-        #     continue
+        if bench_filter and b["name"] not in bench_filter:
+            continue
         ev = Evaluator(b["name"], b["path"])
-        # rows = feedback_loop(ev, b["name"], {} if no_features else ir_features(ev._linked),
-        #                      budget, proposals_per_round, history_size=history_size,
-        #                      backend=backend, model=model or None,
-        #                      temperature=temperature, seed=seed)
-        rows = feedback_loop(ev, b["name"], ir_features(ev._linked),
+        rows = feedback_loop(ev, b["name"], {} if no_features else ir_features(ev._linked),
                              budget, proposals_per_round, history_size=history_size,
                              backend=backend, model=model or None,
                              temperature=temperature, seed=seed)
         all_rows += rows
         best = min((r["instr"] for r in rows if r["instr"] is not None), default=None)
         console.print(f"[green]{b['name']}[/] best={best}")
-    store.append(all_rows, "search_llm_loop")    
+    suffix = ""
+    if no_features:
+        suffix = "_nofeat"
+    elif history_size != 8:
+        suffix = f"_h{history_size}"
+    store.append(all_rows, f"search_llm_loop{suffix}")
     
 if __name__ == "__main__":
     app()

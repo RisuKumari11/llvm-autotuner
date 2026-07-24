@@ -135,7 +135,7 @@ To understand which components contributed to feedback-loop performance, two abl
 |---------|-----------------:|
 | One-Shot | **1.000×** |
 | Loop (History = 8) | **0.995×** |
-| Loop (History = 2) | **0.999×** |
+| Loop (History = 2) | **1.000x** |
 | Loop (No Static Features) | **0.999×** |
 
 ### Observations

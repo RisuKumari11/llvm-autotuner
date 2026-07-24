@@ -2,6 +2,12 @@ from src.autotuner import store
 from src.autotuner.stats import geomean
 import pandas as pd
 
+# Must match the --benches value used when generating search_llm_loop_h2.parquet
+# and search_llm_loop_nofeat.parquet (see command below).
+# python -m src.autotuner.cli llm-loop \
+#   --budget 60 --history-size 2 \
+#   --benches gemm,atax,jacobi-2d,correlation,mvt \
+#   --seed 0
 ABLATION_BENCHES = [
     "gemm",
     "atax",
