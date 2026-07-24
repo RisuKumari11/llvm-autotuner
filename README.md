@@ -23,12 +23,12 @@ Across 12 PolyBench kernels, under a fixed budget of 60 evaluations per benchmar
 
 None of the methods dominate `-O2` or `-O3` across the board. Hill-climbing and
 LLM one-shot are essentially tied for best, matching or slightly beating `-O2` in
-aggregate and beating `-O3` on half the suite — largely on the stencil kernels
+aggregate and beating `-O3` on half the suite - largely on the stencil kernels
 (`heat-3d`, `seidel-2d`) and the smaller BLAS kernels (`bicg`, `gesummv`, `mvt`,
 `gemm`). Random search is the weakest but still lands within 0.3% of `-O2`.
 
 **Wall-clock validation of the hill-climbing winners**: geomean **0.974×** vs `-O2`
-— see [Methodology and Honest Limitations](#methodology-and-honest-limitations) for
+- see [Methodology and Honest Limitations](#methodology-and-honest-limitations) for
 why an instruction-count win doesn't always translate to a wall-clock win.
 
 ---
@@ -41,7 +41,7 @@ docker compose -f docker/docker-compose.yml run core
 ```
 
 This builds baselines, runs a short hill-climbing search, and prints a comparison
-table — no manual LLVM or PolyBench setup required. The LLM path (Ollama) is a
+table - no manual LLVM or PolyBench setup required. The LLM path (Ollama) is a
 separate compose profile and is not needed to reproduce the core search result.
 
 ---
@@ -81,17 +81,17 @@ that the `-O2`/`-O3` baselines get, so the comparison isolates the effect of the
 
 ### Search Methods
 
-- **Random search** — samples valid pass sequences uniformly from a curated pool of
+- **Random search** - samples valid pass sequences uniformly from a curated pool of
   ~20 LLVM passes.
-- **Hill-climbing** — starts from an `-O2`-like seed sequence, mutates
+- **Hill-climbing** - starts from an `-O2`-like seed sequence, mutates
   (replace/insert/delete/swap), keeps improvements, random-restarts on a plateau.
-- **LLM one-shot** — a local LLM (Qwen2.5-Coder via Ollama) proposes a complete pass
+- **LLM one-shot** - a local LLM (Qwen2.5-Coder via Ollama) proposes a complete pass
   sequence per candidate, conditioned on static IR features (loop count, IR size,
   branch count).
-- **LLM + feedback loop** — the same proposer, but each round is conditioned on the
+- **LLM + feedback loop** - the same proposer, but each round is conditioned on the
   best-and-worst measured results from prior rounds.
 
-All four methods share one `Evaluator`: every candidate — valid or invalid — consumes
+All four methods share one `Evaluator`: every candidate - valid or invalid - consumes
 one unit of a shared 60-evaluation budget, so the comparison is budget-matched by
 construction, not by convention.
 
@@ -126,16 +126,16 @@ python -m src.autotuner.cli compare
 | mvt | 5,998,157 | 5,998,169 | 5,989,761 | 5,989,005 | 5,989,024 | 5,989,096 |
 | seidel-2d | 6,517,495 | 6,514,966 | 6,554,448 | 6,369,600 | 6,373,752 | 6,552,217 |
 | **geomean vs O2** | 1.000 | 1.004 | 0.997 | **1.004** | 1.003 | 0.999 |
-| **beats O3** | — | — | 3/12 | 6/12 | 6/12 | 4/12 |
+| **beats O3** | - | - | 3/12 | 6/12 | 6/12 | 4/12 |
 
 ### Benchmark-Level Observations
 
 - Hill-climbing and LLM one-shot beat `-O2` on the same 8 of 12 kernels: `atax`,
   `bicg`, `gemm`, `gesummv`, `heat-3d`, `jacobi-2d`, `mvt`, `seidel-2d`.
 - Both beat `-O3` on 6 of those: `bicg`, `gemm`, `gesummv`, `heat-3d`, `mvt`,
-  `seidel-2d` — mostly stencils and small, memory-bound BLAS kernels.
+  `seidel-2d` - mostly stencils and small, memory-bound BLAS kernels.
 - Random search only beats both baselines on 3 kernels (`bicg`, `gesummv`, `mvt`),
-  confirming that ordering matters — an `-O2`-informed starting point and local
+  confirming that ordering matters - an `-O2`-informed starting point and local
   search meaningfully outperform unguided sampling at this budget.
 - The LLM feedback loop underperforms LLM one-shot in aggregate (0.999 vs 1.003).
   See the ablation below for why.
@@ -166,21 +166,21 @@ make ablations
 | LLM loop, history=2 | 1.000× |
 | LLM loop, no static IR features | 0.999× |
 
-**A1 — feedback vs. one-shot:** the feedback loop did not improve on one-shot
+**A1 - feedback vs. one-shot:** the feedback loop did not improve on one-shot
 prompting at this budget; if anything it was marginally worse. The model's
 pretrained priors about good pass orderings appear stronger than what it can extract
 from a handful of measured (sequence, instruction-count) pairs in-context.
 
-**A2 — history size:** shrinking the feedback history from 8 to 2 measurements made
-no meaningful difference, reinforcing A1 — the model isn't leaning heavily on
+**A2 - history size:** shrinking the feedback history from 8 to 2 measurements made
+no meaningful difference, reinforcing A1 - the model isn't leaning heavily on
 accumulated measurements either way.
 
-**A3 — static IR features:** removing the loop-count / IR-size / branch-count
+**A3 - static IR features:** removing the loop-count / IR-size / branch-count
 features from the prompt barely moved the result. At this scale, those features add
 little beyond what the model infers from the pass-pool description itself.
 
 **Honest takeaway:** the interesting result here is negative, and that's reported
-plainly rather than papered over — measurement feedback, in this setup, budget, and
+plainly rather than papered over - measurement feedback, in this setup, budget, and
 model size, doesn't reliably beat a good one-shot prompt. That's a real finding about
 the limits of in-context feedback for this task, not a failure to hide.
 
@@ -190,7 +190,7 @@ the limits of in-context feedback for this task, not a failure to hide.
 
 ### Primary metric: Callgrind instruction count
 
-Deterministic and reproducible across runs on the same machine — verified by running
+Deterministic and reproducible across runs on the same machine - verified by running
 the same binary through Callgrind twice and confirming an identical count. This
 determinism is what makes a 60-evaluation search budget tractable; wall-clock timing
 alone would be far too noisy to search against directly.
@@ -228,7 +228,7 @@ validation is a required final step, not an optional one.**
 
 - Evaluation budget: 60 per benchmark, per method (invalid candidates and duplicate
   cache hits are excluded from the budget the same way, or included the same way,
-  across every method — see `src/autotuner/search/evaluate.py`).
+  across every method - see `src/autotuner/search/evaluate.py`).
 - Benchmarks: 12 PolyBench/C kernels, `MINI_DATASET` for Callgrind,
   `SMALL_DATASET` for wall-clock.
 - Seed: 0 (single seed; multi-seed variance is a known gap, see below).
@@ -241,7 +241,7 @@ validation is a required final step, not an optional one.**
   methods hasn't been characterized; treat the geomean differences between random,
   hill-climbing, and LLM one-shot (0.997 / 1.004 / 1.003) as suggestive rather than
   statistically bounded.
-- **Instruction count is a proxy**, not the ground truth — see the wall-clock
+- **Instruction count is a proxy**, not the ground truth - see the wall-clock
   section above.
 - **`-O3` remains the strongest baseline** on half the suite. This project searches
   a curated ~20-pass pool with fixed-length sequences; it is not a claim to have
