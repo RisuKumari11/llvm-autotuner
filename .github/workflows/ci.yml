@@ -9,6 +9,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install ruff pytest pyyaml pydantic pandas numpy scipy pyarrow
+      - run: ruff --version
       - run: ruff check src tests
       - run: pytest tests -q -k "not integration"
 
