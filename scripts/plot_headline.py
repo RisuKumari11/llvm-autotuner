@@ -1,6 +1,5 @@
 """Headline figure: geomean speedup vs -O2 per method, plus convergence."""
 import matplotlib.pyplot as plt
-import pandas as pd
 from src.autotuner import store
 from src.autotuner.stats import geomean
 

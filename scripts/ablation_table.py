@@ -1,6 +1,5 @@
 from src.autotuner import store
 from src.autotuner.stats import geomean
-import pandas as pd
 
 # Must match the --benches value used when generating search_llm_loop_h2.parquet
 # and search_llm_loop_nofeat.parquet (see command below).

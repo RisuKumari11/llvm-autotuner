@@ -9,7 +9,6 @@ def load_yaml(name: str) -> dict:
         return yaml.safe_load(f)
 
 BENCH_CFG = load_yaml("benchmarks.yaml")
-
 _smoke_n = os.environ.get("SMOKE_BENCH")
 if _smoke_n:
     BENCH_CFG["benchmarks"] = BENCH_CFG["benchmarks"][: int(_smoke_n)]
