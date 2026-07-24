@@ -25,6 +25,7 @@ o3 = geomean((base["O2"] / base["O3"]).values)
 ax1.axhline(o3, ls=":", c="black", label="-O3")
 ax1.set_ylabel("Geomean speedup vs -O2 (instruction count)")
 ax1.legend()
+ax1.set_ylim(min(gms + [o3]) * 0.999, max(gms + [1.0]) * 1.001)
 
 # right: mean convergence across benchmarks
 for m, lbl in zip(methods, labels):
