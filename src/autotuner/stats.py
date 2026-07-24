@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import stats as st
 
+
 def geomean(x) -> float:
     x = np.asarray(x, dtype=float)
     return float(np.exp(np.log(x).mean()))

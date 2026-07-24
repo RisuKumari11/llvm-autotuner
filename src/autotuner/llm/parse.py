@@ -1,8 +1,11 @@
 """Parse and validate LLM proposals."""
 import json
 import re
+
 from pydantic import BaseModel, field_validator
+
 from .prompts import POOL
+
 
 class Proposal(BaseModel):
     reasoning: str = ""

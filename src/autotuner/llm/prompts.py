@@ -1,5 +1,6 @@
 """Prompt construction for pass-sequence proposals."""
 import json
+
 from ..config import FUNCTION_PASSES, PASS_CFG
 
 POOL = FUNCTION_PASSES + PASS_CFG["loop_passes"]

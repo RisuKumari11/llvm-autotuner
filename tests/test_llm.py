@@ -1,6 +1,8 @@
 import pytest
+
 from src.autotuner.llm.parse import parse_proposal
-from src.autotuner.llm.prompts import proposal_prompt, POOL
+from src.autotuner.llm.prompts import POOL, proposal_prompt
+
 
 def test_parse_clean_json():
     p = parse_proposal('{"reasoning": "x", "passes": ["sroa", "gvn", "instcombine", "adce"]}')

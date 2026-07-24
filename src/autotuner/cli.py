@@ -1,12 +1,14 @@
 import time
-import typer
 from pathlib import Path
+
+import typer
 from rich.console import Console
 from rich.table import Table
-from .config import BENCH_CFG
-from .baselines import build_baseline, LEVELS
-from .measure import instruction_count, wall_clock
+
 from . import store
+from .baselines import LEVELS, build_baseline
+from .config import BENCH_CFG
+from .measure import instruction_count, wall_clock
 
 app = typer.Typer()
 console = Console(width=180)
@@ -54,8 +56,8 @@ def report():
 def search(method: str = "random", budget: int = 60, seed: int = 0):
     """Run a search method across all benchmarks, log every evaluation."""
     from .search.evaluate import Evaluator
+    from .search.hillclimb import hill_climb  # exists after Day 3
     from .search.random_search import random_search
-    from .search.hillclimb import hill_climb   # exists after Day 3
     all_rows = []
     for b in BENCH_CFG["benchmarks"]:
         ev = Evaluator(b["name"], b["path"])
@@ -131,11 +133,11 @@ def compare():
 @app.command()
 def validate():
     """Wall-clock check: does the instruction-count winner also win real time?"""
-    from .search.evaluate import WORK
-    from .ir import emit_linked_bc
-    from .compile import compile_with_passes
-    from .measure import wall_clock
     from .baselines import build_baseline
+    from .compile import compile_with_passes
+    from .ir import emit_linked_bc
+    from .measure import wall_clock
+    from .search.evaluate import WORK
 
     df = store.load("search_hillclimb").dropna(subset=["instr"])
     rows = []
@@ -159,9 +161,10 @@ def llm_search(budget: int = 60, backend: str = "ollama",
                model: str = "", temperature: float = 0.8, seed: int = 0):
     """LLM one-shot proposals as a candidate source, budget-matched to search."""
     import time as _t
-    from .search.evaluate import Evaluator
-    from .llm.features import ir_features
+
     from .llm.agent import propose
+    from .llm.features import ir_features
+    from .search.evaluate import Evaluator
 
     all_rows = []
     for b in BENCH_CFG["benchmarks"]:
@@ -203,9 +206,9 @@ def llm_loop(budget: int = 60, proposals_per_round: int = 5, history_size: int =
     --no-features       run with an empty feature dict (ablation A3)
     --benches gemm,atax  restrict to a comma-separated subset (used for ablations)
     """
-    from .search.evaluate import Evaluator
-    from .llm.features import ir_features
     from .llm.agent import feedback_loop
+    from .llm.features import ir_features
+    from .search.evaluate import Evaluator
 
     bench_filter = {b.strip() for b in benches.split(",") if b.strip()} or None
 

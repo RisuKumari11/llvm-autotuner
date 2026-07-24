@@ -6,6 +6,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
+
 @dataclass
 class WallClock:
     median_s: float

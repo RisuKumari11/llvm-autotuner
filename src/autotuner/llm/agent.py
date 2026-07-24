@@ -1,8 +1,10 @@
 """LLM-guided candidate generation."""
 import time
-from .client import chat, LLMError
-from .prompts import proposal_prompt
+
+from .client import LLMError, chat
 from .parse import parse_proposal
+from .prompts import proposal_prompt
+
 
 def propose(bench_name: str, features: dict, history=None,
             backend="ollama", model=None, max_retries=3,

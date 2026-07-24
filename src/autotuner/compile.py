@@ -1,6 +1,7 @@
 """Apply a pass sequence to linked bitcode and produce a binary."""
 import subprocess
 from pathlib import Path
+
 from .config import LOOP_PASSES
 
 OPT = "opt"

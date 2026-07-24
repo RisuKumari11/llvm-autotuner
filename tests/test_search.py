@@ -1,7 +1,9 @@
 import random
-from src.autotuner.search.random_search import sample_sequence, POOL
-from src.autotuner.search.hillclimb import mutate, O2_LIKE
+
 from src.autotuner.compile import build_pass_string
+from src.autotuner.search.hillclimb import O2_LIKE, mutate
+from src.autotuner.search.random_search import POOL, sample_sequence
+
 
 def test_sample_in_pool_and_length():
     rng = random.Random(0)

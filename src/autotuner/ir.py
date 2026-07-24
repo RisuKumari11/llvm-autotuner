@@ -1,6 +1,7 @@
 """Emit linked, optimizable LLVM bitcode for a PolyBench kernel."""
 import subprocess
 from pathlib import Path
+
 from .config import POLYBENCH
 
 CLANG = "clang"

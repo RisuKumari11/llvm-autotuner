@@ -2,10 +2,10 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ..ir import emit_linked_bc
-from ..compile import compile_with_passes, InvalidCandidate
-from ..measure import instruction_count
+from ..compile import InvalidCandidate, compile_with_passes
 from ..config import BENCH_CFG
+from ..ir import emit_linked_bc
+from ..measure import instruction_count
 
 WORK = Path("/tmp/autotuner/search")
 

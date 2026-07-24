@@ -1,6 +1,12 @@
 import pytest
-from src.autotuner.compile import build_pass_string, compile_with_passes, InvalidCandidate
+
+from src.autotuner.compile import (
+    InvalidCandidate,
+    build_pass_string,
+    compile_with_passes,
+)
 from src.autotuner.ir import emit_linked_bc
+
 
 def test_loop_pass_wrapping():
     s = build_pass_string(["sroa", "loop-rotate", "licm", "gvn"])

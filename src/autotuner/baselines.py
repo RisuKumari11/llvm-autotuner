@@ -1,6 +1,7 @@
 """Build -O0/-O2/-O3/-Os reference binaries directly with clang."""
 import subprocess
 from pathlib import Path
+
 from .config import POLYBENCH
 
 CLANG = "clang"

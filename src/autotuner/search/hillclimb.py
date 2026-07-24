@@ -2,8 +2,8 @@
 import random
 import time
 
-from .random_search import POOL, sample_sequence
 from .evaluate import Evaluator
+from .random_search import POOL, sample_sequence
 
 # A hand-built O2-flavored starting point using only passes from our pool.
 O2_LIKE = [
